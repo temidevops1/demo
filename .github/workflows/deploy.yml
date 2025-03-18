@@ -1,4 +1,4 @@
-name: Deploy Public Health Data Tracker
+name: Deploy Public Health Tracker to EKS
 
 on:
   push:
@@ -25,14 +25,13 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v3
-        with:
-          context: ./public-health-tracker  # ✅ Correcting build context
-          push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/public-health-tracker:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Build and push Docker image to Docker Hub
+        env:
+          DOCKERHUB_REPO: ${{ secrets.DOCKER_HUB_USERNAME }}/public-health-tracker
+          IMAGE_TAG: latest
+        run: |
+          docker build -t $DOCKERHUB_REPO:$IMAGE_TAG ./public-health-tracker
+          docker push $DOCKERHUB_REPO:$IMAGE_TAG
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v3
@@ -41,24 +40,13 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-
-      - name: Push to Amazon ECR
+      - name: Update Kubernetes deployment in Amazon EKS
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: public-health-tracker
+          EKS_CLUSTER: public-health-cluster
+          KUBE_DEPLOYMENT: public-health-app
+          DOCKERHUB_REPO: ${{ secrets.DOCKER_HUB_USERNAME }}/public-health-tracker
+          IMAGE_TAG: latest
         run: |
-          docker tag ${{ secrets.DOCKER_HUB_USERNAME }}/public-health-tracker:latest $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-
-      - name: Deploy to AWS ECS
-        env:
-          ECS_CLUSTER: your-ecs-cluster-name
-          ECS_SERVICE: your-ecs-service-name
-        run: |
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $ECS_SERVICE \
-            --force-new-deployment
+          aws eks update-kubeconfig --name $EKS_CLUSTER
+          kubectl set image deployment/$KUBE_DEPLOYMENT public-health-container=$DOCKERHUB_REPO:$IMAGE_TAG
+          kubectl rollout status deployment/$KUBE_DEPLOYMENT
