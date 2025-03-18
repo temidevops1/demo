@@ -1,29 +1,20 @@
-# Use the official Node.js 18 image
-FROM node:18 AS build
+# Use official Node.js image
+FROM node:18-alpine
 
-# Set the working directory inside the container to `public-health-tracker`
-WORKDIR /app/public-health-tracker
+# Set the working directory
+WORKDIR /app
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
+# Copy package.json and package-lock.json before running npm install
+COPY package.json package-lock.json ./
 
-# Install dependencies using npm ci for a clean install
-RUN npm ci --legacy-peer-deps
+# Install dependencies
+RUN npm ci --only=production
 
-# Copy the rest of the application code
+# Copy the rest of the application
 COPY . .
 
-# Build the application
-RUN npm run build
+# Expose the port
+EXPOSE 3000
 
-# Use Nginx to serve the static files
-FROM nginx:alpine
-
-# Copy the build output to replace the default Nginx contents
-COPY --from=build /app/public-health-tracker/build /usr/share/nginx/html
-
-# Expose port 80
-EXPOSE 80
-
-# Start Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start the application
+CMD ["npm", "start"]
