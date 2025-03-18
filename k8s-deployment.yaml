@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: public-health-app
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: public-health
+  template:
+    metadata:
+      labels:
+        app: public-health
+    spec:
+      containers:
+        - name: public-health-container
+          image: tboydev/public-health-tracker:latest  # ✅ Replace with your Docker Hub repo
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: public-health-service
+  namespace: default
+spec:
+  selector:
+    app: public-health
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer
+

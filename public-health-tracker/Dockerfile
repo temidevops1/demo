@@ -1,42 +1,35 @@
-# Use the official Node.js 18 image
-FROM node:18 AS build
+# 🌟 Build Stage - Node.js to build static files
+FROM node:16 AS build
 
-# Set the working directory inside the container
+# Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json from the correct location
-COPY package*.json /app/
+# Copy package.json and install dependencies
+COPY package*.json ./
+RUN npm install --frozen-lockfile
 
-# Ensure npm is installed and updated
-RUN npm install -g npm@10
-
-# Install dependencies using npm ci for a clean install
-RUN npm ci --legacy-peer-deps
-
-# Copy the rest of the application code
-COPY . /app/
-
-# Build the application
+# Copy the rest of the code and build
+COPY . .
 RUN npm run build
 
-# Use Nginx to serve the static files
+# 🌟 Serve with Nginx
 FROM nginx:alpine
 
-# Create a non-root user and group
-RUN addgroup -S app && adduser -S app -G app
-
-# Set the working directory to the Nginx HTML directory
+# Set working directory
 WORKDIR /usr/share/nginx/html
 
-# Copy the build output to replace the default Nginx contents
+# Copy built app from Node.js stage
 COPY --from=build /app/build .
 
-# Change ownership of the files to the app user
-RUN chown -R app:app /usr/share/nginx/html
+# ✅ Fix the COPY command (Ensure nginx.conf exists in the project directory)
+COPY ./nginx.conf /etc/nginx/nginx.conf
 
-# Expose port 80
+# Fix permission issue causing "mkdir() failed (13: Permission denied)"
+RUN mkdir -p /var/cache/nginx/client_temp \
+    && chmod -R 777 /var/cache/nginx
+
+# Expose port
 EXPOSE 80
 
-# Start Nginx as the app user
-USER app
+# Start Nginx
 CMD ["nginx", "-g", "daemon off;"]

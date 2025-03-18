@@ -1,28 +1,34 @@
-# Use the official Node.js image as the base
+# 🌟 Build Stage - Node.js to build static files
 FROM node:16 AS build
 
-# Set the working directory
+# Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Copy package.json and install dependencies
 COPY package*.json ./
+RUN npm install --frozen-lockfile
 
-# Install dependencies
-RUN npm install
-
-# Copy the rest of the application code
+# Copy the rest of the code and build
 COPY . .
-
-# Build the application
 RUN npm run build
 
-# Use Nginx to serve the static files
+# 🌟 Serve with Nginx
 FROM nginx:alpine
 
-# Copy the build output to replace the default Nginx contents
-COPY --from=build /app/build /usr/share/nginx/html
+# Set working directory
+WORKDIR /usr/share/nginx/html
 
-# Expose port 80
+# Copy built app from Node.js stage
+COPY --from=build /app/build .
+
+# Copy custom Nginx config (optional, useful for SPAs)
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Fix permission issue causing "mkdir() failed (13: Permission denied)"
+RUN mkdir -p /var/cache/nginx/client_temp \
+    && chmod -R 777 /var/cache/nginx
+
+# Expose port
 EXPOSE 80
 
 # Start Nginx
