@@ -1,20 +1,20 @@
 # Use the official Node.js 18 image
 FROM node:18 AS build
 
-# Set the working directory inside the container to public-health-tracker
-WORKDIR /app/public-health-tracker
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy package.json and package-lock.json from the correct location
+COPY package*.json /app/
 
 # Ensure npm is installed and updated
 RUN npm install -g npm@10
-
-# Copy package.json and package-lock.json
-COPY package*.json ./
 
 # Install dependencies using npm ci for a clean install
 RUN npm ci --legacy-peer-deps
 
 # Copy the rest of the application code
-COPY . .
+COPY . /app/
 
 # Build the application
 RUN npm run build
@@ -29,7 +29,7 @@ RUN addgroup -S app && adduser -S app -G app
 WORKDIR /usr/share/nginx/html
 
 # Copy the build output to replace the default Nginx contents
-COPY --from=build /app/public-health-tracker/build .
+COPY --from=build /app/build .
 
 # Change ownership of the files to the app user
 RUN chown -R app:app /usr/share/nginx/html

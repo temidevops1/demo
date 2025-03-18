@@ -13,6 +13,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Debug Docker build context
+        run: ls -la ./public-health-tracker
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -25,7 +28,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v3
         with:
-          context: .
+          context: ./public-health-tracker  # ✅ Correcting build context
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/public-health-tracker:latest
           cache-from: type=gha
