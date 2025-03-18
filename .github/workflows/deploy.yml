@@ -21,6 +21,11 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
+      - name: Debug npm install
+        run: |
+          node -v
+          npm -v
+          npm install --verbose
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v3

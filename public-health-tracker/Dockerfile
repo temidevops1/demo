@@ -1,16 +1,16 @@
-# Use official Node.js image
-FROM node:18-alpine
-
-# Set the working directory
+FROM node:18-alpine  # Ensure compatibility with your dependencies
 WORKDIR /app
 
-# Copy package.json and package-lock.json before running npm install
+# Set environment variable to avoid unnecessary logs
+ENV NODE_ENV=production
+
+# Copy package files first to leverage Docker cache
 COPY package.json package-lock.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Ensure clean installation
+RUN npm ci --only=production || npm install --only=production
 
-# Copy the rest of the application
+# Copy the rest of the project files
 COPY . .
 
 # Expose the port
