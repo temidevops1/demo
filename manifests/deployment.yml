@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: health-tracker
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: health-tracker
+  template:
+    metadata:
+      labels:
+        app: health-tracker
+    spec:
+      containers:
+      - name: health-tracker
+        image: public.ecr.aws/my-repo/health-tracker:latest
+        ports:
+        - containerPort: 80
