@@ -5,13 +5,13 @@ FROM node:18 AS build
 WORKDIR /app/public-health-tracker
 
 # Copy package.json and package-lock.json
-COPY public-health-tracker/package*.json ./
+COPY package*.json ./
 
-# Install dependencies
+# Install dependencies using npm ci for a clean install
 RUN npm ci --legacy-peer-deps
 
 # Copy the rest of the application code
-COPY public-health-tracker ./
+COPY . .
 
 # Build the application
 RUN npm run build
