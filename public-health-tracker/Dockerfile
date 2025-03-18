@@ -7,8 +7,8 @@ ENV NODE_ENV=production
 # Copy package files first to leverage Docker cache
 COPY package.json package-lock.json ./
 
-# Ensure clean installation
-RUN npm ci --only=production || npm install --only=production
+COPY node_modules/ .
+
 
 # Copy the rest of the project files
 COPY . .
