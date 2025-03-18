@@ -1,5 +1,5 @@
 # Use the official Node.js 18 image
-FROM node:18 AS build
+FROM FROM node:16.16.0-alpine
 
 # Set the working directory inside the container to public-health-tracker
 WORKDIR /app/public-health-tracker
