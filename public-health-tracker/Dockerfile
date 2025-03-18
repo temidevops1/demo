@@ -1,8 +1,11 @@
 # Use the official Node.js 18 image
-FROM FROM node:16.16.0-alpine
+FROM node:18 AS build
 
 # Set the working directory inside the container to public-health-tracker
 WORKDIR /app/public-health-tracker
+
+# Ensure npm is installed and updated
+RUN npm install -g npm@10
 
 # Copy package.json and package-lock.json
 COPY package*.json ./
