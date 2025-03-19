@@ -372,3 +372,81 @@ resource "aws_route_table_association" "private_2" {
   subnet_id      = aws_subnet.eks_private_2.id
   route_table_id = aws_route_table.private.id
 }
+
+# disaster recovery
+
+resource "aws_backup_vault" "eks_backup_vault" {
+  name = "eks-backup-vault"
+}
+
+resource "aws_backup_plan" "eks_backup_plan" {
+  name = "eks-backup-plan"
+
+  rule {
+    rule_name         = "daily-backup"
+    target_vault_name = aws_backup_vault.eks_backup_vault.name
+    schedule          = "cron(0 12 * * ? *)"  # Runs daily at 12 PM UTC
+    lifecycle {
+      delete_after = 30  # Keeps backups for 30 days
+    }
+  }
+}
+
+resource "aws_backup_selection" "eks_backup_selection" {
+  name          = "eks-backup-selection"
+  iam_role_arn  = aws_iam_role.eks_backup_role.arn
+  plan_id       = aws_backup_plan.eks_backup_plan.id  # 🔹 Required for Backup Selection!
+  resources     = [aws_ebs_volume.eks_storage.arn]  
+}
+
+resource "aws_iam_role" "eks_backup_role" {
+  name = "eks-backup-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "backup.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy" "eks_backup_policy" {
+  name        = "eks-backup-policy"
+  description = "Policy to allow AWS Backup to access EKS resources"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "ec2:DescribeVolumes",
+          "ec2:CreateSnapshot",
+          "ec2:DeleteSnapshot",
+          "ec2:DescribeSnapshots"
+        ],
+        Effect   = "Allow",
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eks_backup_attachment" {
+  role       = aws_iam_role.eks_backup_role.name
+  policy_arn = aws_iam_policy.eks_backup_policy.arn
+}
+
+resource "aws_ebs_volume" "eks_storage" {
+  availability_zone = "us-east-1a"  # Change this to match your region
+  size              = 20            # Adjust the volume size (GB)
+
+  tags = {
+    Name = "eks-storage-volume"
+  }
+}
